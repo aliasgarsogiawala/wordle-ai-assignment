@@ -115,4 +115,4 @@ def play_auto(secret=None, tries=10, verbose=True):
     return False, history
 
 if __name__ == "__main__":
-    solved, hist = play_auto(secret="plant", tries=10, verbose=True)
+    solved, hist = play_auto(secret="noise", tries=10, verbose=True)
