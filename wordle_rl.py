@@ -5,11 +5,35 @@ import random
 from datetime import datetime
 from collections import defaultdict
 import numpy as np
-import pandas as pd
+import urllib.request
+import urllib.error
 
-# Load words from wordle.txt using pandas
-word_df = pd.read_csv('wordle.txt', header=None, names=['word'])
-WORDS = word_df['word'].tolist()
+WORDS_URL = 'https://raw.githubusercontent.com/tabatkins/wordle-list/main/words'
+
+def load_words() -> list[str]:
+    # Try remote list first
+    try:
+        with urllib.request.urlopen(WORDS_URL, timeout=10) as resp:
+            data = resp.read().decode('utf-8', errors='ignore')
+        words = [w.strip().lower() for w in data.splitlines() if len(w.strip()) == 5 and w.strip().isalpha()]
+        # dedupe, preserve order
+        return list(dict.fromkeys(words))
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError):
+        pass
+    # Fallback to local file if present
+    if os.path.exists('wordle.txt'):
+        try:
+            with open('wordle.txt', 'r', encoding='utf-8') as f:
+                words = [w.strip().lower() for w in f if len(w.strip()) == 5 and w.strip().isalpha()]
+                return list(dict.fromkeys(words))
+        except Exception:
+            pass
+    # Minimal fallback
+    return [
+        'crane','slate','flint','pride','crown','glare','shine','grape','stone','brink','apple'
+    ]
+
+WORDS = load_words()
 
 # Environment for Wordle
 def compute_feedback(secret, guess):
@@ -162,7 +186,7 @@ def play(agent, delay_seconds: float = 2.0):
                 return
         time.sleep(delay_seconds)
 
-        for turn in range(2, 7):
+        for turn in range(2, 6 ):
                 guess = agent.choose(candidates)
                 feedback = compute_feedback(secret, guess)
                 print(f"Guess {turn}: {colorize(guess, feedback)}  (candidates: {len(candidates)})")
