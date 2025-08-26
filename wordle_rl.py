@@ -11,16 +11,13 @@ import urllib.error
 WORDS_URL = 'https://raw.githubusercontent.com/tabatkins/wordle-list/main/words'
 
 def load_words() -> list[str]:
-    # Try remote list first
     try:
         with urllib.request.urlopen(WORDS_URL, timeout=10) as resp:
             data = resp.read().decode('utf-8', errors='ignore')
         words = [w.strip().lower() for w in data.splitlines() if len(w.strip()) == 5 and w.strip().isalpha()]
-        # dedupe, preserve order
         return list(dict.fromkeys(words))
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError):
         pass
-    # Fallback to local file if present
     if os.path.exists('wordle.txt'):
         try:
             with open('wordle.txt', 'r', encoding='utf-8') as f:
@@ -28,14 +25,12 @@ def load_words() -> list[str]:
                 return list(dict.fromkeys(words))
         except Exception:
             pass
-    # Minimal fallback
     return [
         'crane','slate','flint','pride','crown','glare','shine','grape','stone','brink','apple'
     ]
 
 WORDS = load_words()
 
-# Environment for Wordle
 def compute_feedback(secret, guess):
     """Return feedback string using G (green), Y (yellow), X (gray)."""
     feedback = []
@@ -62,12 +57,11 @@ def matches(word, guess, feedback):
 class QLearningAgent:
     def __init__(self, words, alpha=0.1, gamma=0.9, epsilon=0.3, persist_path: str = "q_values.json"):
         self.words = words
-        self.q = defaultdict(float)  # Q-values per word
+        self.q = defaultdict(float)  
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
         self.persist_path = persist_path
-        # Load persisted Q-table if available
         self._load()
 
     def choose(self, candidates):
@@ -87,14 +81,11 @@ class QLearningAgent:
             if os.path.exists(self.persist_path):
                 with open(self.persist_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                # Restore into defaultdict(float)
                 self.q = defaultdict(float, {k: float(v) for k, v in data.get('q', {}).items()})
-                # Optionally restore hyperparams
                 self.alpha = float(data.get('alpha', self.alpha))
                 self.gamma = float(data.get('gamma', self.gamma))
                 self.epsilon = float(data.get('epsilon', self.epsilon))
         except Exception:
-            # Ignore corrupt file
             pass
 
     def save(self):
@@ -116,7 +107,6 @@ def train(agent, episodes=100):
         secret = random.choice(WORDS)
         candidates = WORDS.copy()
 
-        # Always open with 'slate'
         guess = "slate"
         feedback = compute_feedback(secret, guess)
         reward = 10 if guess == secret else -1
@@ -133,14 +123,12 @@ def train(agent, episodes=100):
             agent.update(guess, reward, candidates)
             if guess == secret:
                 break
-    # Persist learned Q-values after training
     agent.save()
 
-# Terminal color codes
 COLORS = {
-    'G': '\033[42m',  # Green background
-    'Y': '\033[43m',  # Yellow background
-    'X': '\033[47m'   # Grey background
+    'G': '\033[42m',  
+    'Y': '\033[43m',  
+    'X': '\033[47m'   
 }
 RESET = '\033[0m'
 
@@ -153,15 +141,13 @@ def play(agent, delay_seconds: float = 2.0):
         candidates = WORDS.copy()
         print("Secret word selected. Start guessing!\n")
 
-        # Session log for frontend/reporting
         session = {
                 'timestamp': datetime.utcnow().isoformat() + 'Z',
-                'secret': secret,  # kept for report; not printed live
+                'secret': secret, 
                 'steps': [],
                 'won': False,
         }
 
-        # First guess is always 'slate'
         turn = 1
         guess = "slate"
         feedback = compute_feedback(secret, guess)
